@@ -1,0 +1,122 @@
+﻿@page "/todo"
+@rendermode InteractiveServer
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+<PageTitle>ToDo</PageTitle>
+
+<h2>Work Orginizer Tool</h2>
+
+<input placeholder="something to do" @bind="newToDo" required/>
+<button @onclick="AddToDo" disabled="@string.IsNullOrWhiteSpace(newToDo)">Add ToDo</button>
+
+<div class="progress" style="height: 25px;">
+    <div class="progress-bar bg-success" style="width:@($"{ProgressPercent}%")">
+    <span class="progress-label">@ProgressPercent%</span>
+</div>
+</div>
+
+<div class="todoContainer">
+    <div class="column">
+        <ul >
+            <span class="badge bg-secondary">To Do (@todos.Count(todo => !todo.isDone))</span>
+            @foreach (var todo in todos)
+            {
+                <li>
+                    <input type="checkbox" @bind="todo.isDone" @bind:after="() => AddInProgress(todo)"/>
+                    <input @bind="todo.Title" disabled/>
+                    <button @onclick="() => DeleteToDo(todo.Title, todos)" class="btn btn-light">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="red" viewBox="0 0 16 16">
+                            <path d="M5.5 5.5a.5.5 0 011 0v6a.5.5 0 01-1 0v-6zM8 5.5a.5.5 0 011 0v6a.5.5 0 01-1 0v-6zM10.5 5.5a.5.5 0 011 0v6a.5.5 0 01-1 0v-6z"/>
+                            <path fill-rule="evenodd" d="M14.5 3a1 1 0 00-1-1H11.5a1 1 0 00-1-1h-5a1 1 0 00-1 1H2.5a1 1 0 00-1 1V4h13V3zM3.118 4l.406 9.168A2 2 0 005.516 15h4.968a2 2 0 001.992-1.832L12.882 4h5.118z"/>
+                        </svg>
+                    </button>
+
+                </li>
+            }
+        </ul>
+    </div>
+    <div class="column">
+        <span class="badge bg-warning">In Progress (@inProgress.Count(todo => todo.isDone))</span>
+        <ul>
+            @foreach (var todo in inProgress)   
+            {
+                <li>
+                    <input type="checkbox" @bind="todo.isDone" @bind:after="() => AddDone(todo)"/>
+                    <input @bind="todo.Title" disabled/>
+                    <button @onclick="() => DeleteToDo(todo.Title, inProgress)" class="btn btn-light">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="red" viewBox="0 0 16 16">
+                            <path d="M5.5 5.5a.5.5 0 011 0v6a.5.5 0 01-1 0v-6zM8 5.5a.5.5 0 011 0v6a.5.5 0 01-1 0v-6zM10.5 5.5a.5.5 0 011 0v6a.5.5 0 01-1 0v-6z"/>
+                            <path fill-rule="evenodd" d="M14.5 3a1 1 0 00-1-1H11.5a1 1 0 00-1-1h-5a1 1 0 00-1 1H2.5a1 1 0 00-1 1V4h13V3zM3.118 4l.406 9.168A2 2 0 005.516 15h4.968a2 2 0 001.992-1.832L12.882 4h5.118z"/>
+                        </svg>
+                    </button>
+
+                </li>
+            }
+        </ul>
+    </div>
+    <div class="column">
+        <span class="badge bg-success">Done (@Done.Count(todo => !todo.isDone))</span>
+        <ul>
+            @foreach (var todo in Done)
+            {
+                <li>
+                    <input @bind="todo.Title" disabled/>
+                    <button @onclick="() => DeleteToDo(todo.Title, Done)" class="btn btn-light">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="red" viewBox="0 0 16 16">
+                            <path d="M5.5 5.5a.5.5 0 011 0v6a.5.5 0 01-1 0v-6zM8 5.5a.5.5 0 011 0v6a.5.5 0 01-1 0v-6zM10.5 5.5a.5.5 0 011 0v6a.5.5 0 01-1 0v-6z"/>
+                            <path fill-rule="evenodd" d="M14.5 3a1 1 0 00-1-1H11.5a1 1 0 00-1-1h-5a1 1 0 00-1 1H2.5a1 1 0 00-1 1V4h13V3zM3.118 4l.406 9.168A2 2 0 005.516 15h4.968a2 2 0 001.992-1.832L12.882 4h5.118z"/>
+                        </svg>
+                    </button>
+
+                </li>
+            }
+        </ul>
+    </div>
+</div>
+
+<p>Total: @totalCount | Done: @Done.Count | Progress: @ProgressPercent%</p>
+
+@code {
+    internal string? newToDo;
+
+    internal  List<ToDoItem> todos = [];
+    internal  List<ToDoItem> inProgress = [];
+    internal  List<ToDoItem> Done = [];
+
+    internal int totalCount => todos.Count + inProgress.Count + Done.Count;
+
+    internal int ProgressPercent => totalCount == 0 ? 0 : (int)(Done.Count * 100.0 / totalCount);
+
+    internal void AddToDo(){
+        todos.Add(new ToDoItem{Title = newToDo, Status = Progress.ToDo});
+        newToDo = string.Empty;
+    }
+
+    internal void AddInProgress(ToDoItem item){
+        
+        inProgress.Add(item);
+        item.isDone = false;
+        item.Status = Progress.InProgress;
+        todos.Remove(item);
+        StateHasChanged();
+
+    }
+
+    internal void AddDone(ToDoItem item){
+        Done.Add(item);
+        item.isDone = false;
+        item.Status = Progress.Done;
+        inProgress.Remove(item);
+        StateHasChanged();
+    }
+
+    internal void DeleteToDo(string title, List<ToDoItem> list){
+        var todoToRemove = list.FirstOrDefault(t => t.Title == title);
+        if (todoToRemove != null)
+        {
+            list.Remove(todoToRemove);
+            StateHasChanged();
+        }
+    }
+}

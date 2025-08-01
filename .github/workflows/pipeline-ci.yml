@@ -1,0 +1,102 @@
+name: Build Project, Test and Docker Image
+
+on: [push, pull_request]
+
+jobs:
+  Setup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+      
+      - name: Setup .NET Sdk
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore Dependencies
+        run: dotnet restore
+
+  Testing:
+    runs-on: ubuntu-latest
+    needs: Setup
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+      
+      - name: Setup .NET Sdk
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore Dependencies
+        run: dotnet restore
+
+      - name: Test the Web
+        run: dotnet test --no-build --verbosity normal
+
+  Image:
+    runs-on: ubuntu-latest
+    needs: Testing
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Extract Docker Image Metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ vars.DOCKER_USERNAME }}/internship-project
+
+  Authenticate:
+    runs-on: ubuntu-latest
+    needs: Image
+
+    steps:
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+  Build:
+    runs-on: ubuntu-latest
+    needs: Authenticate
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Extract Docker Image Metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ vars.DOCKER_USERNAME }}/js-img
+      
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v6
+        with:
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          annotations: ${{ steps.meta.outputs.annotations }}
+
+  Artifact:
+    runs-on: ubuntu-latest
+    needs: Build
+
+    steps:
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Artifacts
+          path: |
+            **/bin/Debug/net9.0/
