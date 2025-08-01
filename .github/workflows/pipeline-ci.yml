@@ -101,4 +101,4 @@ jobs:
         with:
           name: Artifacts
           path: |
-            ./ToDoList/bin/Debug/net9.0/
+            **/ToDoList/bin/Debug/net9.0/
